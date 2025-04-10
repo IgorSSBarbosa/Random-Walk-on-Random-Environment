@@ -61,20 +61,19 @@ def search_in_rotated_array(space, a)-> bool: # This is an adaptation of binary 
 '''Random Walk'''
 
 
-def random_walk_step(space , rw , right_drift=1/3, left_drift=2/3):
-    
+def random_walk_step(space,rw,right_drift=1/3,left_drift=2/3):  
     if search_in_rotated_array(space,rw): # in blue particles there is a right shift
         direction = bernoulli.rvs(right_drift)  # sample 1 with prob 1/3 and 0 with probability 2/3 
         direction = 2*direction -1              # change bernoulli(0,1) to bernoulli(-1,+1)
         rw = rw + direction
-        # print(direction)
+
         return(rw)
     
     else :# in red particles there is a left shift
         direction = bernoulli.rvs(left_drift)   # sample 1 with prob 2/3 and 0 with probability 1/3 
         direction = 2*direction -1              # change bernoulli(0,1) to bernoulli(-1,+1)
         rw = rw + direction
-        # print(direction)
+
         return(rw)
 
 
@@ -89,11 +88,11 @@ def random_walk(L,t,right_drift=1/3,left_drift=2/3,mu=1/2,v=1):
     space = space_env(L,mu)
     numb_particle = len(space)
 
-    for t0 in range(t):
+    for t0 in range(t+1):
         s = np.random.poisson(numb_particle*v)
 
         move_particle(space,s,L,mu)
-        rw = random_walk_step(space,rw,right_drift,left_drift)
+        rw= random_walk_step(space,rw,right_drift,left_drift)
     return(rw)
 
 

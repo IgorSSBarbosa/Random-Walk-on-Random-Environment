@@ -29,13 +29,6 @@ def confidence_level(q,sortedAbs, alpha=0.01): # it gives a confifence interval 
     return errorbar
 
 
-def domain(k1,k2):
-    predomain = range(k2-k1+1)              # create a list of int [0 , 1 , ... , k2-k1]
-    dom = [int(x+k1) for x in predomain]    # shift that list to get [k1, k1+1, ... , k2]
-
-    return dom
-
-
 def linear_regression(dom,out,q=None,errorbar=None):
     poly_coef = np.polyfit(dom, out, 1)
     poly_out = [poly_coef[1] + poly_coef[0]*x for x in dom]
