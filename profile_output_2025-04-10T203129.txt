@@ -1,0 +1,28 @@
+Timer unit: 1e-09 s
+
+Total time: 40.8809 s
+File: /home/usuario/Works/Random-Walk-on-Random-Environment/rwre.py
+Function: random_walk at line 84
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    84                                           @profile
+    85                                           def random_walk(L,t,right_drift=1/3,left_drift=2/3,mu=1/2,v=1): 
+    86                                               # L means size of lattice,
+    87                                               # v is the velocity of the environment particles, 
+    88                                               # t is the number of steps of RW, 
+    89                                               # mu is the proportion of particlesin the environment.
+    90                                           
+    91       640     353556.0    552.4      0.0      rw = 0 # random walk starts at zero
+    92                                               
+    93       640   29877871.0  46684.2      0.1      space = space_env(L,mu)
+    94       640     411127.0    642.4      0.0      numb_particle = len(space)
+    95                                           
+    96    128256   35341380.0    275.6      0.1      for t0 in range(t+1):
+    97    127616  395332135.0   3097.8      1.0          s = np.random.poisson(numb_particle*v)
+    98                                           
+    99    127616        3e+10 254881.5     79.6          move_particle(space,s,L,mu)
+   100    127616 7892442804.0  61845.2     19.3          rw= random_walk_step(space,rw,right_drift,left_drift)
+   101       640     181133.0    283.0      0.0      return(rw)
+
+ 40.88 seconds - /home/usuario/Works/Random-Walk-on-Random-Environment/rwre.py:84 - random_walk

@@ -5,6 +5,11 @@ import time
 from tqdm import tqdm
 from scipy.stats import bernoulli
 
+'''profiling'''
+from loglogplot import log_log_plot
+from line_profiler import profile
+
+
 
 '''Simple Symmetric Exclusion Process (SSEP)'''
 
@@ -15,7 +20,7 @@ def space_env(L , mu=0.5):
     space = np.random.choice(total_space, int(L*mu), replace=False)  # choose L/2 of the bins to contain a particle
     return(np.sort(space))                                           # return the index of the particles sorted
 
-
+@profile
 def move_particle(space,s,L,mu=0.5):
     #Moves s particles to a neighboring site if that new position is empty
     particles_index = np.arange(len(space))
@@ -60,7 +65,7 @@ def search_in_rotated_array(space, a)-> bool: # This is an adaptation of binary 
 
 '''Random Walk'''
 
-
+@profile
 def random_walk_step(space,rw,right_drift=1/3,left_drift=2/3):  
     if search_in_rotated_array(space,rw): # in blue particles there is a right shift
         direction = bernoulli.rvs(right_drift)  # sample 1 with prob 1/3 and 0 with probability 2/3 
@@ -124,3 +129,16 @@ def full_data_random_walk(k1,k2,Numbsimul,right_drift=1/3,left_drift=2/3,mu=1/2,
     print('\n')
 
     return(data)
+
+'''Profiling'''
+
+
+k1 = 5
+k2 = 9
+Numbsimul = 128
+A = full_data_random_walk(k1,k2, Numbsimul)
+
+# Making the graphic of log_log_plot
+q = 0.55
+dom = np.arange(k1,k2+1)
+log_log_plot(q,dom,A)
