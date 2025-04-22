@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm
+from scipy.stats import norm,quantile_test
 
 # taking absolute value of S_n, sorting the samples, calculate mean and median.
 def treat_this_data(A):
