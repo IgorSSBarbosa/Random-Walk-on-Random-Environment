@@ -1,13 +1,14 @@
 import taichi as ti
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 # Initialize Taichi (CPU, parallel)
-ti.init(arch=ti.cpu, cpu_max_num_threads=8)
+ti.init(arch=ti.cpu, cpu_max_num_threads=12)
 
 @ti.data_oriented
 class BondPercolation:
-    def __init__(self, n, p=0.5, periodic=False):
+    def __init__(self, n, p=0.5, periodic=False, dtype=ti.i32):
         """
         Initialize bond percolation simulation
         
@@ -21,18 +22,19 @@ class BondPercolation:
         self.periodic = periodic
         
         # Horizontal bonds (n x n-1)
-        self.h_bonds = ti.field(dtype=ti.i32, shape=(n, n-1))
+        self.h_bonds = ti.field(dtype=dtype, shape=(n, n-1))
         # Vertical bonds (n-1 x n)
-        self.v_bonds = ti.field(dtype=ti.i32, shape=(n-1, n))
+        self.v_bonds = ti.field(dtype=dtype, shape=(n-1, n))
+        
         # For periodic boundaries
-        self.h_periodic = ti.field(dtype=ti.i32, shape=n)
-        self.v_periodic = ti.field(dtype=ti.i32, shape=n)
-        
-        # Cluster labels
-        self.labels = ti.field(dtype=ti.i32, shape=(n, n))
-        self.parent = ti.field(dtype=ti.i32, shape=(n, n))
-        self.size = ti.field(dtype=ti.i32, shape=(n, n))
-        
+        self.h_periodic = ti.field(dtype=dtype, shape=n)
+        self.v_periodic = ti.field(dtype=dtype, shape=n)
+
+        # Cluster labels and Union-Find structures
+        self.parent = ti.field(dtype=dtype, shape=(n, n))
+        self.size = ti.field(dtype=dtype, shape=(n, n))
+        self.labels = ti.field(dtype=dtype, shape=(n, n))
+    
     @ti.kernel
     def generate_bonds(self):
         """Generate random horizontal and vertical bonds"""
@@ -51,9 +53,10 @@ class BondPercolation:
     def find(self, i: ti.i32, j: ti.i32) -> ti.i32:
         """Find root with path compression"""
         root_i, root_j = i, j
+        # encodes the parent as a single integer of the form root_i * n + root_j
         while (self.parent[root_i, root_j] != root_i * self.n + root_j):
             temp = self.parent[root_i, root_j]
-            root_i, root_j = temp // self.n, temp % self.n
+            root_i, root_j = temp // self.n, temp % self.n # decodes the parent back to root_i, root_j
             
         # Path compression
         while (i != root_i or j != root_j):
@@ -61,7 +64,7 @@ class BondPercolation:
             self.parent[i, j] = root_i * self.n + root_j
             i, j = temp // self.n, temp % self.n
             
-        return root_i * self.n + root_j
+        return root_i * self.n + root_j 
     
     @ti.func
     def union(self, i1: ti.i32, j1: ti.i32, i2: ti.i32, j2: ti.i32):
@@ -70,8 +73,8 @@ class BondPercolation:
         root2 = self.find(i2, j2)
         
         if root1 != root2:
-            r1_i, r1_j = root1 // self.n, root1 % self.n
-            r2_i, r2_j = root2 // self.n, root2 % self.n
+            r1_i, r1_j = root1 // self.n, root1 % self.n # decodes the root back to r1_i, r1_j
+            r2_i, r2_j = root2 // self.n, root2 % self.n # decodes the root back to r2_i, r2_j
             
             if self.size[r1_i, r1_j] < self.size[r2_i, r2_j]:
                 self.parent[r1_i, r1_j] = root2
@@ -85,8 +88,9 @@ class BondPercolation:
         """Find connected clusters using Union-Find"""
         # Initialize Union-Find
         for i, j in ti.ndrange(self.n, self.n):
-            self.parent[i, j] = i * self.n + j
+            self.parent[i, j] = i * self.n + j # Encode parent as a single integer
             self.size[i, j] = 1
+            self.labels[i, j] = -1  # Initialize labels
             
         # Process horizontal bonds
         for i, j in ti.ndrange(self.n, self.n-1):
@@ -122,6 +126,9 @@ class BondPercolation:
     
     def visualize(self, highlight_largest=True):
         """Visualize the percolation configuration"""
+        # Create directory if it doesn't exist
+        os.makedirs('cluster/images', exist_ok=True)
+        
         plt.figure(figsize=(8, 8))
         
         # Convert bonds to numpy for plotting
@@ -143,9 +150,7 @@ class BondPercolation:
         if highlight_largest:
             largest_cluster = self.get_largest_cluster()
             if largest_cluster is not None:
-                # Plot sites in largest cluster
                 sites = np.argwhere(largest_cluster)
-                plt.plot(sites[:, 1], sites[:, 0], 'ro', markersize=0.2, alpha=0.6)
                 
                 # Highlight bonds in largest cluster
                 for i, j in sites:
@@ -168,7 +173,7 @@ class BondPercolation:
         plt.title(f'Bond Percolation (n={self.n}, p={self.p})')
         plt.xticks([])
         plt.yticks([])
-        plt.savefig(f'percolation_n={self.n}_p={self.p}.png', dpi=300)
+        plt.savefig(f'cluster/images/percolation_n={self.n}_p={self.p}.png', dpi=300)
 
     def largest_cluster_size(self):
         """Return the size of the largest cluster"""
@@ -178,12 +183,12 @@ class BondPercolation:
 # Example usage
 if __name__ == "__main__":
     # Parameters
-    n = 50  # Grid size (can go much higher with Taichi)
+    n = 100  # Grid size 
     p = 0.50  # Bond probability
     periodic = False  # Boundary conditions
     
     # Create and run simulation
-    percolation = BondPercolation(n, p, periodic)
+    percolation = BondPercolation(n, p, periodic=False)
     percolation.generate_bonds()
     percolation.find_clusters()
     
